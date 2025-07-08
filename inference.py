@@ -25,18 +25,9 @@ from hf_utils import load_custom_model_from_hf
 from typing import Callable
 from pathlib import Path
 
-
-# Load model and configuration
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-elif torch.backends.mps.is_available():
-    device = torch.device("mps")
-else:
-    device = torch.device("cpu")
-
 fp16 = False
 def load_models(args):
+    device = args.device
     global fp16
     fp16 = args.fp16
     if not args.f0_condition:
@@ -279,13 +270,12 @@ def inference(
     mel_fn: Callable,
     auto_f0_adjust: bool,
     f0_condition: bool,
-    pitch_shift: int,
+    semi_tone_shift: int,
     length_adjust: float,
     diffusion_steps: int,
     inference_cfg_rate: float,
-    source: str,
-    target_name: str,
-    out_fname: str = None,
+    device: str,
+    out_fname: str,
     **kwargs
 ) -> None:
     sr = 22050 if not f0_condition else 44100
@@ -364,8 +354,8 @@ def inference(
         if auto_f0_adjust:
             shifted_log_f0_alt[F0_alt > 1] = log_f0_alt[F0_alt > 1] - median_log_f0_alt + median_log_f0_ori
         shifted_f0_alt = torch.exp(shifted_log_f0_alt)
-        if pitch_shift != 0:
-            shifted_f0_alt[F0_alt > 1] = adjust_f0_semitones(shifted_f0_alt[F0_alt > 1], pitch_shift)
+        if semi_tone_shift != 0:
+            shifted_f0_alt[F0_alt > 1] = adjust_f0_semitones(shifted_f0_alt[F0_alt > 1], semi_tone_shift)
     else:
         F0_ori = None
         F0_alt = None
@@ -426,13 +416,8 @@ def inference(
     time_vc_end = time.time()
     print(f"RTF: {(time_vc_end - time_vc_start) / vc_wave.size(-1) * sr}")
 
-    source_name = os.path.basename(source).split(".")[0]
-    target_name = os.path.basename(target_name).split(".")[0]
     os.makedirs(args.output, exist_ok=True)
-    if out_fname:
-        torchaudio.save(out_fname, vc_wave.cpu(), sr)
-    else:
-        torchaudio.save(os.path.join(args.output, f"vc_{source_name}_{target_name}_{length_adjust}_{diffusion_steps}_{inference_cfg_rate}.wav"), vc_wave.cpu(), sr)
+    torchaudio.save(out_fname, vc_wave.cpu(), sr)
 
 def main(args):
     model, semantic_fn, f0_fn, vocoder_fn, campplus_model, mel_fn, mel_fn_args = load_models(args)
@@ -441,6 +426,9 @@ def main(args):
     target_name = args.target
     ref_audio = librosa.load(target_name, sr=sr)[0]
     if args.inference_type == "singular":
+        out_path = source_path.split("/")
+        out_path[0] = args.output
+        out_path = "/".join(out_path)
         inference(
             source_audio=source_audio,
             ref_audio=ref_audio,
@@ -450,6 +438,7 @@ def main(args):
             vocoder_fn=vocoder_fn,
             campplus_model=campplus_model,
             mel_fn=mel_fn,
+            out_name=out_path,
             **args.__dict__
         )
     elif args.inference_type == "directory":
@@ -471,14 +460,9 @@ def main(args):
                         vocoder_fn=vocoder_fn,
                         campplus_model=campplus_model,
                         mel_fn=mel_fn,
-                        source=source_path,
-                        target_name=target_path,
                         out_fname=out_path,
                         **args.__dict__
                     )
-
-    
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -494,11 +478,12 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, help="Path to the checkpoint file", default=None)
     parser.add_argument("--config", type=str, help="Path to the config file", default=None)
     parser.add_argument("--fp16", type=str2bool, default=True)
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     inference_subparsers = parser.add_subparsers(dest="inference_type")
     singular_parser = inference_subparsers.add_parser("singular", help="Perform inference only on one audio file")
     singular_parser.add_argument("--source", type=str, required=True)
     directory_parser = inference_subparsers.add_parser("directory", help="Perform inference on all audio files in a directory")
-    directory_parser.add_argument("--dir", type=str, required=True)
-    
+    directory_parser.add_argument("--dir", type=str, required=True) 
     args = parser.parse_args()
+    args.device = torch.device(args.device)
     main(args)
