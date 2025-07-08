@@ -22,6 +22,8 @@ import librosa
 from modules.commons import str2bool
 
 from hf_utils import load_custom_model_from_hf
+from typing import Callable
+from pathlib import Path
 
 
 # Load model and configuration
@@ -39,25 +41,33 @@ def load_models(args):
     fp16 = args.fp16
     if not args.f0_condition:
         if args.checkpoint is None:
-            dit_checkpoint_path, dit_config_path = load_custom_model_from_hf("Plachta/Seed-VC",
-                                                                            "DiT_seed_v2_uvit_whisper_small_wavenet_bigvgan_pruned.pth",
-                                                                            "config_dit_mel_seed_uvit_whisper_small_wavenet.yml")
+            dit_checkpoint_path, dit_config_path = load_custom_model_from_hf(
+                repo_id="Plachta/Seed-VC",
+                model_filename="DiT_seed_v2_uvit_whisper_small_wavenet_bigvgan_pruned.pth",
+                config_filename="config_dit_mel_seed_uvit_whisper_small_wavenet.yml",
+                cache_dir=args.cache_dir
+            )
         else:
             dit_checkpoint_path = args.checkpoint
             dit_config_path = args.config
         f0_fn = None
     else:
         if args.checkpoint is None:
-            dit_checkpoint_path, dit_config_path = load_custom_model_from_hf("Plachta/Seed-VC",
-                                                                             "DiT_seed_v2_uvit_whisper_base_f0_44k_bigvgan_pruned_ft_ema_v2.pth",
-                                                                             "config_dit_mel_seed_uvit_whisper_base_f0_44k.yml")
+            dit_checkpoint_path, dit_config_path = load_custom_model_from_hf(
+                repo_id="Plachta/Seed-VC",
+                model_filename="DiT_seed_v2_uvit_whisper_base_f0_44k_bigvgan_pruned_ft_ema_v2.pth",
+                config_filename="config_dit_mel_seed_uvit_whisper_base_f0_44k.yml",
+                cache_dir=args.cache_dir
+            )
         else:
             dit_checkpoint_path = args.checkpoint
             dit_config_path = args.config
         # f0 extractor
         from modules.rmvpe import RMVPE
 
-        model_path = load_custom_model_from_hf("lj1995/VoiceConversionWebUI", "rmvpe.pt", None)
+        model_path = load_custom_model_from_hf(
+            repo_id="lj1995/VoiceConversionWebUI", model_filename="rmvpe.pt", cache_dir=args.cache_dir
+        )
         f0_extractor = RMVPE(model_path, is_half=False, device=device)
         f0_fn = f0_extractor.infer_from_audio
 
@@ -86,7 +96,7 @@ def load_models(args):
     from modules.campplus.DTDNN import CAMPPlus
 
     campplus_ckpt_path = load_custom_model_from_hf(
-        "funasr/campplus", "campplus_cn_common.bin", config_filename=None
+        repo_id="funasr/campplus", model_filename="campplus_cn_common.bin", cache_dir=args.cache_dir
     )
     campplus_model = CAMPPlus(feat_dim=80, embedding_size=192)
     campplus_model.load_state_dict(torch.load(campplus_ckpt_path, map_location="cpu"))
@@ -108,7 +118,9 @@ def load_models(args):
         from modules.hifigan.f0_predictor import ConvRNNF0Predictor
         hift_config = yaml.safe_load(open('configs/hifigan.yml', 'r'))
         hift_gen = HiFTGenerator(**hift_config['hift'], f0_predictor=ConvRNNF0Predictor(**hift_config['f0_predictor']))
-        hift_path = load_custom_model_from_hf("FunAudioLLM/CosyVoice-300M", 'hift.pt', None)
+        hift_path = load_custom_model_from_hf(
+            repo_id="FunAudioLLM/CosyVoice-300M", model_filename="hift.pt", cache_dir=args.cache_dir
+        )
         hift_gen.load_state_dict(torch.load(hift_path, map_location='cpu'))
         hift_gen.eval()
         hift_gen.to(device)
@@ -172,11 +184,13 @@ def load_models(args):
                 waves_16k[bib].cpu().numpy()
                 for bib in range(len(waves_16k))
             ]
-            ori_inputs = hubert_feature_extractor(ori_waves_16k_input_list,
-                                                  return_tensors="pt",
-                                                  return_attention_mask=True,
-                                                  padding=True,
-                                                  sampling_rate=16000).to(device)
+            ori_inputs = hubert_feature_extractor(
+                ori_waves_16k_input_list,
+                return_tensors="pt",
+                return_attention_mask=True,
+                padding=True,
+                sampling_rate=16000
+            ).to(device)
             with torch.no_grad():
                 ori_outputs = hubert_model(
                     ori_inputs.input_values.half(),
@@ -202,15 +216,15 @@ def load_models(args):
                 waves_16k[bib].cpu().numpy()
                 for bib in range(len(waves_16k))
             ]
-            ori_inputs = wav2vec_feature_extractor(ori_waves_16k_input_list,
-                                                   return_tensors="pt",
-                                                   return_attention_mask=True,
-                                                   padding=True,
-                                                   sampling_rate=16000).to(device)
+            ori_inputs = wav2vec_feature_extractor(
+                ori_waves_16k_input_list,
+                return_tensors="pt",
+                return_attention_mask=True,
+                padding=True,
+                sampling_rate=16000
+            ).to(device)
             with torch.no_grad():
-                ori_outputs = wav2vec_model(
-                    ori_inputs.input_values.half(),
-                )
+                ori_outputs = wav2vec_model(ori_inputs.input_values.half())
             S_ori = ori_outputs.last_hidden_state.float()
             return S_ori
     else:
@@ -254,21 +268,26 @@ def crossfade(chunk1, chunk2, overlap):
     return chunk2
 
 @torch.no_grad()
-def main(args):
-    model, semantic_fn, f0_fn, vocoder_fn, campplus_model, mel_fn, mel_fn_args = load_models(args)
-    sr = mel_fn_args['sampling_rate']
-    f0_condition = args.f0_condition
-    auto_f0_adjust = args.auto_f0_adjust
-    pitch_shift = args.semi_tone_shift
-
-    source = args.source
-    target_name = args.target
-    diffusion_steps = args.diffusion_steps
-    length_adjust = args.length_adjust
-    inference_cfg_rate = args.inference_cfg_rate
-    source_audio = librosa.load(source, sr=sr)[0]
-    ref_audio = librosa.load(target_name, sr=sr)[0]
-
+def inference(
+    source_audio,
+    ref_audio,
+    model,
+    semantic_fn,
+    f0_fn,
+    vocoder_fn,
+    campplus_model,
+    mel_fn: Callable,
+    auto_f0_adjust: bool,
+    f0_condition: bool,
+    pitch_shift: int,
+    length_adjust: float,
+    diffusion_steps: int,
+    inference_cfg_rate: float,
+    source: str,
+    target_name: str,
+    out_fname: str = None,
+    **kwargs
+) -> None:
     sr = 22050 if not f0_condition else 44100
     hop_length = 256 if not f0_condition else 512
     max_context_window = sr // hop_length * 30
@@ -315,10 +334,12 @@ def main(args):
     target_lengths = torch.LongTensor([int(mel.size(2) * length_adjust)]).to(mel.device)
     target2_lengths = torch.LongTensor([mel2.size(2)]).to(mel2.device)
 
-    feat2 = torchaudio.compliance.kaldi.fbank(ori_waves_16k,
-                                              num_mel_bins=80,
-                                              dither=0,
-                                              sample_frequency=16000)
+    feat2 = torchaudio.compliance.kaldi.fbank(
+        ori_waves_16k,
+        num_mel_bins=80,
+        dither=0,
+        sample_frequency=16000
+    )
     feat2 = feat2 - feat2.mean(dim=0, keepdim=True)
     style2 = campplus_model(feat2.unsqueeze(0))
 
@@ -351,13 +372,12 @@ def main(args):
         shifted_f0_alt = None
 
     # Length regulation
-    cond, _, codes, commitment_loss, codebook_loss = model.length_regulator(S_alt, ylens=target_lengths,
-                                                                                       n_quantizers=3,
-                                                                                       f0=shifted_f0_alt)
-    prompt_condition, _, codes, commitment_loss, codebook_loss = model.length_regulator(S_ori,
-                                                                                       ylens=target2_lengths,
-                                                                                       n_quantizers=3,
-                                                                                       f0=F0_ori)
+    cond, _, codes, commitment_loss, codebook_loss = model.length_regulator(
+        S_alt, ylens=target_lengths, n_quantizers=3, f0=shifted_f0_alt
+    )
+    prompt_condition, _, codes, commitment_loss, codebook_loss = model.length_regulator(
+        S_ori, ylens=target2_lengths, n_quantizers=3, f0=F0_ori
+    )
 
     max_source_window = max_context_window - mel2.size(2)
     # split source condition (cond) into chunks
@@ -370,10 +390,12 @@ def main(args):
         cat_condition = torch.cat([prompt_condition, chunk_cond], dim=1)
         with torch.autocast(device_type=device.type, dtype=torch.float16 if fp16 else torch.float32):
             # Voice Conversion
-            vc_target = model.cfm.inference(cat_condition,
-                                                       torch.LongTensor([cat_condition.size(1)]).to(mel2.device),
-                                                       mel2, style2, None, diffusion_steps,
-                                                       inference_cfg_rate=inference_cfg_rate)
+            vc_target = model.cfm.inference(
+                cat_condition,
+                torch.LongTensor([cat_condition.size(1)]).to(mel2.device),
+                mel2, style2, None, diffusion_steps,
+                inference_cfg_rate=inference_cfg_rate
+            )
             vc_target = vc_target[:, :, mel2.size(-1):]
         vc_wave = vocoder_fn(vc_target.float()).squeeze()
         vc_wave = vc_wave[None, :]
@@ -392,8 +414,11 @@ def main(args):
             processed_frames += vc_target.size(2) - overlap_frame_len
             break
         else:
-            output_wave = crossfade(previous_chunk.cpu().numpy(), vc_wave[0, :-overlap_wave_len].cpu().numpy(),
-                                    overlap_wave_len)
+            output_wave = crossfade(
+                previous_chunk.cpu().numpy(),
+                vc_wave[0, :-overlap_wave_len].cpu().numpy(),
+                overlap_wave_len
+            )
             generated_wave_chunks.append(output_wave)
             previous_chunk = vc_wave[0, -overlap_wave_len:]
             processed_frames += vc_target.size(2) - overlap_frame_len
@@ -404,14 +429,62 @@ def main(args):
     source_name = os.path.basename(source).split(".")[0]
     target_name = os.path.basename(target_name).split(".")[0]
     os.makedirs(args.output, exist_ok=True)
-    torchaudio.save(os.path.join(args.output, f"vc_{source_name}_{target_name}_{length_adjust}_{diffusion_steps}_{inference_cfg_rate}.wav"), vc_wave.cpu(), sr)
+    if out_fname:
+        torchaudio.save(out_fname, vc_wave.cpu(), sr)
+    else:
+        torchaudio.save(os.path.join(args.output, f"vc_{source_name}_{target_name}_{length_adjust}_{diffusion_steps}_{inference_cfg_rate}.wav"), vc_wave.cpu(), sr)
+
+def main(args):
+    model, semantic_fn, f0_fn, vocoder_fn, campplus_model, mel_fn, mel_fn_args = load_models(args)
+    sr = mel_fn_args['sampling_rate']
+
+    target_name = args.target
+    ref_audio = librosa.load(target_name, sr=sr)[0]
+    if args.inference_type == "singular":
+        inference(
+            source_audio=source_audio,
+            ref_audio=ref_audio,
+            model=model,
+            semantic_fn=semantic_fn,
+            f0_fn=f0_fn,
+            vocoder_fn=vocoder_fn,
+            campplus_model=campplus_model,
+            mel_fn=mel_fn,
+            **args.__dict__
+        )
+    elif args.inference_type == "directory":
+        os.makedirs(args.output, exist_ok=True)
+        for root, _, files in os.walk(args.dir):
+            for file in files:
+                if file.endswith(".wav"):
+                    source_path = os.path.join(root, file)
+                    source_audio = librosa.load(source_path, sr=sr)[0]
+                    out_path = source_path.split("/")
+                    out_path[0] = args.output
+                    out_path = "/".join(out_path)
+                    inference(
+                        source_audio=source_audio,
+                        ref_audio=ref_audio,
+                        model=model,
+                        semantic_fn=semantic_fn,
+                        f0_fn=f0_fn,
+                        vocoder_fn=vocoder_fn,
+                        campplus_model=campplus_model,
+                        mel_fn=mel_fn,
+                        source=source_path,
+                        target_name=target_path,
+                        out_fname=out_path,
+                        **args.__dict__
+                    )
+
+    
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", type=str, default="./examples/source/source_s1.wav")
-    parser.add_argument("--target", type=str, default="./examples/reference/s1p1.wav")
-    parser.add_argument("--output", type=str, default="./reconstructed")
+    parser.add_argument("--cache_dir", type=str, default="./checkpoints")
+    parser.add_argument("--target", type=str, required=True)
+    parser.add_argument("--output", type=str, default="./out")
     parser.add_argument("--diffusion-steps", type=int, default=30)
     parser.add_argument("--length-adjust", type=float, default=1.0)
     parser.add_argument("--inference-cfg-rate", type=float, default=0.7)
@@ -421,5 +494,11 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, help="Path to the checkpoint file", default=None)
     parser.add_argument("--config", type=str, help="Path to the config file", default=None)
     parser.add_argument("--fp16", type=str2bool, default=True)
+    inference_subparsers = parser.add_subparsers(dest="inference_type")
+    singular_parser = inference_subparsers.add_parser("singular", help="Perform inference only on one audio file")
+    singular_parser.add_argument("--source", type=str, required=True)
+    directory_parser = inference_subparsers.add_parser("directory", help="Perform inference on all audio files in a directory")
+    directory_parser.add_argument("--dir", type=str, required=True)
+    
     args = parser.parse_args()
     main(args)
