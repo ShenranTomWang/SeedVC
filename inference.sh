@@ -65,7 +65,6 @@ for parent_dir in \
     out/gender_logistic_regression/s_a_top_32_custom_libritts_male
 do
     python inference.py \
-        --cache_dir $HF_HUB_CACHE \
         --checkpoint /home/shw002/u/SeedVC/models/DiT_uvit_tat_xlsr_ema.pth \
         --config /home/shw002/u/SeedVC/models/config_dit_mel_seed_uvit_xlsr_tiny.yml \
         --target /home/shw002/u/data/LibriTTS_R/train-clean-100/27/123349/27_123349_000001_000000.wav \
