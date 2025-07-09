@@ -27,3 +27,4 @@ runs/
 /flagged/
 /experimental/
 /out
+**.out
