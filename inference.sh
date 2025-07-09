@@ -70,6 +70,6 @@ do
         --config /home/shw002/u/SeedVC/models/config_dit_mel_seed_uvit_xlsr_tiny.yml \
         --target /home/shw002/u/data/LibriTTS_R/train-clean-100/27/123349/27_123349_000001_000000.wav \
         directory \
-            --dir home/shw002/StyleTTS2/$parent_dir
+            --dir home/shw002/StyleTTS2/$parent_dir \
             --root home/shw002/StyleTTS2/out
 done
