@@ -465,7 +465,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cache_dir", type=str, default="./checkpoints")
+    parser.add_argument("--cache_dir", type=str, default=os.getenv("HF_HOME", "./cache"))
     parser.add_argument("--target", type=str, required=True)
     parser.add_argument("--output", type=str, default="./out")
     parser.add_argument("--diffusion-steps", type=int, default=30)
