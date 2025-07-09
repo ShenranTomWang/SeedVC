@@ -447,9 +447,7 @@ def main(args):
                 if file.endswith(".wav"):
                     source_path = os.path.join(root, file)
                     source_audio = librosa.load(source_path, sr=sr)[0]
-                    out_path = source_path.split("/")
-                    out_path[0] = args.output
-                    out_path = "/".join(out_path)
+                    out_path = os.path.dirname(source_path).replace(args.root, args.output)
                     inference(
                         source_audio=source_audio,
                         ref_audio=ref_audio,
@@ -482,7 +480,8 @@ if __name__ == "__main__":
     singular_parser = inference_subparsers.add_parser("singular", help="Perform inference only on one audio file")
     singular_parser.add_argument("--source", type=str, required=True)
     directory_parser = inference_subparsers.add_parser("directory", help="Perform inference on all audio files in a directory")
-    directory_parser.add_argument("--dir", type=str, required=True) 
+    directory_parser.add_argument("--dir", type=str, required=True)
+    directory_parser.add_argument("--root", type=str, required=True)
     args = parser.parse_args()
     args.device = torch.device(args.device)
     main(args)
