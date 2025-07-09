@@ -6,6 +6,7 @@ import shutil
 import warnings
 import argparse
 import torch
+import tqdm
 import yaml
 
 warnings.simplefilter('ignore')
@@ -443,7 +444,7 @@ def main(args):
     elif args.inference_type == "directory":
         os.makedirs(args.output, exist_ok=True)
         for root, _, files in os.walk(args.dir):
-            for file in files:
+            for file in tqdm.tqdm(files, desc=f"Processing directory {args.dir}"):
                 if file.endswith(".wav"):
                     source_path = os.path.join(root, file)
                     source_audio = librosa.load(source_path, sr=sr)[0]
