@@ -1,5 +1,4 @@
 import os
-os.environ['HF_HUB_CACHE'] = './checkpoints/hf_cache'
 import gradio as gr
 import torch
 import torchaudio

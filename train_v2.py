@@ -1,6 +1,5 @@
 import os
 import sys
-os.environ['HF_HUB_CACHE'] = './checkpoints/hf_cache'
 import torch
 import torch.multiprocessing as mp
 import random
