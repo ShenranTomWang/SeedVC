@@ -483,7 +483,7 @@ if __name__ == "__main__":
     parser.add_argument("--semi-tone-shift", type=int, default=0)
     parser.add_argument("--checkpoint", type=str, help="Path to the checkpoint file", default=None)
     parser.add_argument("--config", type=str, help="Path to the config file", default=None)
-    parser.add_argument("--fp16", type=str2bool, default=True)
+    parser.add_argument("--fp16", default=False, action="store_true", help="Use fp16 for inference")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     inference_subparsers = parser.add_subparsers(dest="inference_type")
     singular_parser = inference_subparsers.add_parser("singular", help="Perform inference only on one audio file")
