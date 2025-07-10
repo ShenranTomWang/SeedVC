@@ -425,7 +425,7 @@ def inference(
     time_vc_end = time.time()
     print(f"RTF: {(time_vc_end - time_vc_start) / vc_wave.size(-1) * sr}")
 
-    os.makedirs(out_fname, exist_ok=True)
+    os.makedirs(os.path.dirname(out_fname), exist_ok=True)
     torchaudio.save(out_fname, vc_wave.cpu(), sr)
 
 def main(args):
@@ -456,7 +456,7 @@ def main(args):
                 if file.endswith(".wav"):
                     source_path = os.path.join(root, file)
                     source_audio = librosa.load(source_path, sr=sr)[0]
-                    out_path = os.path.dirname(source_path).replace(args.root, args.output) + file
+                    out_path = os.path.join(root.replace(args.root, args.output), file)
                     inference(
                         source_audio=source_audio,
                         ref_audio=ref_audio,
