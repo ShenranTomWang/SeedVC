@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 
-import shutil
 import warnings
 import argparse
 import torch
@@ -12,8 +11,6 @@ import yaml
 warnings.simplefilter('ignore')
 
 # load packages
-import random
-
 from modules.commons import *
 import time
 
@@ -23,7 +20,6 @@ from modules.commons import str2bool
 
 from hf_utils import load_custom_model_from_hf
 from typing import Callable
-from pathlib import Path
 
 fp16 = False
 def load_models(args):
@@ -122,8 +118,14 @@ def load_models(args):
         vocos_model_params = recursive_munch(vocos_config['model_params'])
         vocos = build_model(vocos_model_params, stage='mel_vocos')
         vocos_checkpoint_path = vocos_path
-        vocos, _, _, _ = load_checkpoint(vocos, None, vocos_checkpoint_path,
-                                         load_only_params=True, ignore_modules=[], is_distributed=False)
+        vocos, _, _, _ = load_checkpoint(
+            vocos,
+            None,
+            vocos_checkpoint_path,
+            load_only_params=True,
+            ignore_modules=[],
+            is_distributed=False
+        )
         _ = [vocos[key].eval().to(device) for key in vocos]
         _ = [vocos[key].to(device) for key in vocos]
         total_params = sum(sum(p.numel() for p in vocos[key].parameters() if p.requires_grad) for key in vocos.keys())
@@ -131,6 +133,7 @@ def load_models(args):
         vocoder_fn = vocos.decoder
     else:
         raise ValueError(f"Unknown vocoder type: {vocoder_type}")
+    print(f"Vocoder model loaded: {vocoder_type}")
 
     speech_tokenizer_type = model_params.speech_tokenizer.type
     if speech_tokenizer_type == 'whisper':
@@ -142,11 +145,15 @@ def load_models(args):
         whisper_feature_extractor = AutoFeatureExtractor.from_pretrained(whisper_name)
 
         def semantic_fn(waves_16k):
-            ori_inputs = whisper_feature_extractor([waves_16k.squeeze(0).cpu().numpy()],
-                                                   return_tensors="pt",
-                                                   return_attention_mask=True)
+            ori_inputs = whisper_feature_extractor(
+                [waves_16k.squeeze(0).cpu().numpy()],
+                return_tensors="pt",
+                return_attention_mask=True
+            )
             ori_input_features = whisper_model._mask_input_features(
-                ori_inputs.input_features, attention_mask=ori_inputs.attention_mask).to(device)
+                ori_inputs.input_features,
+                attention_mask=ori_inputs.attention_mask
+            ).to(device)
             with torch.no_grad():
                 ori_outputs = whisper_model.encoder(
                     ori_input_features.to(whisper_model.encoder.dtype),
@@ -220,6 +227,7 @@ def load_models(args):
             return S_ori
     else:
         raise ValueError(f"Unknown speech tokenizer type: {speech_tokenizer_type}")
+    print(f"Semantic tokenizer loaded: {speech_tokenizer_type}")
     # Generate mel spectrograms
     mel_fn_args = {
         "n_fft": config['preprocess_params']['spect_params']['n_fft'],
@@ -305,7 +313,8 @@ def inference(
             else:
                 chunk = torch.cat(
                     [buffer, converted_waves_16k[:, traversed_time:traversed_time + 16000 * (30 - overlapping_time)]],
-                    dim=-1)
+                    dim=-1
+                )
             S_alt = semantic_fn(chunk)
             if traversed_time == 0:
                 S_alt_list.append(S_alt)
@@ -444,7 +453,7 @@ def main(args):
     elif args.inference_type == "directory":
         os.makedirs(args.output, exist_ok=True)
         for root, _, files in os.walk(args.dir):
-            for file in tqdm.tqdm(files, desc=f"Processing directory {args.dir}"):
+            for file in tqdm.tqdm(files, desc=f"Processing directory {root}"):
                 if file.endswith(".wav"):
                     source_path = os.path.join(root, file)
                     source_audio = librosa.load(source_path, sr=sr)[0]
