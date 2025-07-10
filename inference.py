@@ -425,7 +425,7 @@ def inference(
     time_vc_end = time.time()
     print(f"RTF: {(time_vc_end - time_vc_start) / vc_wave.size(-1) * sr}")
 
-    os.makedirs(args.output, exist_ok=True)
+    os.makedirs(out_fname, exist_ok=True)
     torchaudio.save(out_fname, vc_wave.cpu(), sr)
 
 def main(args):
@@ -451,13 +451,12 @@ def main(args):
             **args.__dict__
         )
     elif args.inference_type == "directory":
-        os.makedirs(args.output, exist_ok=True)
         for root, _, files in os.walk(args.dir):
             for file in tqdm.tqdm(files, desc=f"Processing directory {root}"):
                 if file.endswith(".wav"):
                     source_path = os.path.join(root, file)
                     source_audio = librosa.load(source_path, sr=sr)[0]
-                    out_path = os.path.dirname(source_path).replace(args.root, args.output)
+                    out_path = os.path.dirname(source_path).replace(args.root, args.output) + file
                     inference(
                         source_audio=source_audio,
                         ref_audio=ref_audio,
