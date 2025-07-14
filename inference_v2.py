@@ -80,8 +80,6 @@ def convert_voice_v2(source_audio_path, target_audio_path, args):
 
 def main(args):
     # Create output directory if it doesn't exist
-    os.makedirs(args.output, exist_ok=True)
-
     if args.inference_type == "singular":
         start_time = time.time()
         converted_audio = convert_voice_v2(args.source, args.target, args)
@@ -99,6 +97,7 @@ def main(args):
         filename = f"vc_v2_{source_name}_{target_name}_{args.length_adjust}_{args.diffusion_steps}_{args.similarity_cfg_rate}.wav"
 
         output_path = os.path.join(args.output, filename)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         save_sr, converted_audio = converted_audio
         sf.write(output_path, converted_audio, save_sr)
 
