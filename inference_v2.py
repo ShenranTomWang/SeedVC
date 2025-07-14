@@ -26,8 +26,10 @@ def load_v2_models(args):
     from omegaconf import DictConfig
     cfg = DictConfig(yaml.safe_load(open("configs/v2/vc_wrapper.yaml", "r")))
     vc_wrapper = instantiate(cfg)
-    vc_wrapper.load_checkpoints(ar_checkpoint_path=args.ar_checkpoint_path,
-                                cfm_checkpoint_path=args.cfm_checkpoint_path)
+    vc_wrapper.load_checkpoints(
+        ar_checkpoint_path=args.ar_checkpoint_path,
+        cfm_checkpoint_path=args.cfm_checkpoint_path
+    )
     vc_wrapper.to(device)
     vc_wrapper.eval()
 
@@ -80,36 +82,52 @@ def main(args):
     # Create output directory if it doesn't exist
     os.makedirs(args.output, exist_ok=True)
 
-    start_time = time.time()
-    converted_audio = convert_voice_v2(args.source, args.target, args)
-    end_time = time.time()
+    if args.inference_type == "singular":
+        start_time = time.time()
+        converted_audio = convert_voice_v2(args.source, args.target, args)
+        end_time = time.time()
 
-    if converted_audio is None:
-        print("Error: Failed to convert voice")
-        return
+        if converted_audio is None:
+            print("Error: Failed to convert voice")
+            return
 
-    # Save the converted audio
-    source_name = os.path.basename(args.source).split(".")[0]
-    target_name = os.path.basename(args.target).split(".")[0]
+        # Save the converted audio
+        source_name = os.path.basename(args.source).split(".")[0]
+        target_name = os.path.basename(args.target).split(".")[0]
 
-    # Create a descriptive filename
-    filename = f"vc_v2_{source_name}_{target_name}_{args.length_adjust}_{args.diffusion_steps}_{args.similarity_cfg_rate}.wav"
+        # Create a descriptive filename
+        filename = f"vc_v2_{source_name}_{target_name}_{args.length_adjust}_{args.diffusion_steps}_{args.similarity_cfg_rate}.wav"
 
-    output_path = os.path.join(args.output, filename)
-    save_sr, converted_audio = converted_audio
-    sf.write(output_path, converted_audio, save_sr)
+        output_path = os.path.join(args.output, filename)
+        save_sr, converted_audio = converted_audio
+        sf.write(output_path, converted_audio, save_sr)
 
-    print(f"Voice conversion completed in {end_time - start_time:.2f} seconds")
-    print(f"Output saved to: {output_path}")
+        print(f"Voice conversion completed in {end_time - start_time:.2f} seconds")
+        print(f"Output saved to: {output_path}")
+    elif args.inference_type == "directory":
+        for root, _, files in os.walk(args.dir):
+            for file in files:
+                if file.endswith(".wav"):
+                    source_path = os.path.join(root, file)
+
+                    start_time = time.time()
+                    converted_audio = convert_voice_v2(source_path, args.target, args)
+                    end_time = time.time()
+
+                    if converted_audio is None:
+                        print(f"Error: Failed to convert voice for {source_path}")
+                        continue
+
+                    out_path = os.path.join(root.replace(args.root, args.output), file)
+                    sf.write(out_path, converted_audio[1], converted_audio[0])
+                    print(f"Converted {source_path} in {end_time - start_time:.2f} seconds. Output saved to {out_path}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Voice Conversion Inference Script")
-    parser.add_argument("--source", type=str, required=True,
-                        help="Path to source audio file")
     parser.add_argument("--target", type=str, required=True,
                         help="Path to target/reference audio file")
-    parser.add_argument("--output", type=str, default="./output",
+    parser.add_argument("--output", type=str, default="./out",
                         help="Output directory for converted audio")
     parser.add_argument("--diffusion-steps", type=int, default=30,
                         help="Number of diffusion steps")
@@ -139,6 +157,15 @@ if __name__ == "__main__":
                         help="Path to custom checkpoint file")
     parser.add_argument("--cfm-checkpoint-path", type=str, default=None,
                         help="Path to custom checkpoint file")
+
+    inference_type_subparsers = parser.add_subparsers(dest="inference_type", required=True)
+
+    singular_parser = inference_type_subparsers.add_parser("singular", help="Singular inference mode")
+    singular_parser.add_argument("--source", type=str, required=True, help="Path to source audio file for singular inference")
+
+    directory_parser = inference_type_subparsers.add_parser("directory", help="Directory inference mode")
+    directory_parser.add_argument("--dir", type=str, required=True, help="Directory containing source audio files")
+    directory_parser.add_argument("--root", type=str, required=True, help="Root directory for source files, to be removed from paths")
 
     args = parser.parse_args()
     main(args)
