@@ -5,6 +5,8 @@ import yaml
 import soundfile as sf
 import time
 from modules.commons import str2bool
+from hydra.utils import instantiate
+from omegaconf import DictConfig
 
 # Set up device and torch configurations
 if torch.cuda.is_available():
@@ -22,8 +24,6 @@ vc_wrapper_v2 = None
 
 def load_v2_models(args):
     """Load V2 models using the wrapper from app.py"""
-    from hydra.utils import instantiate
-    from omegaconf import DictConfig
     cfg = DictConfig(yaml.safe_load(open("configs/v2/vc_wrapper.yaml", "r")))
     vc_wrapper = instantiate(cfg)
     vc_wrapper.load_checkpoints(
@@ -119,6 +119,7 @@ def main(args):
                         continue
 
                     out_path = os.path.join(root.replace(args.root, args.output), file)
+                    os.makedirs(os.path.dirname(out_path), exist_ok=True)
                     sf.write(out_path, converted_audio[1], converted_audio[0])
                     print(f"Converted {source_path} in {end_time - start_time:.2f} seconds. Output saved to {out_path}")
 
