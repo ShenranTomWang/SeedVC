@@ -14,11 +14,11 @@ conda activate VC
 cd SeedVC
 export HF_HOME=/home/shw002/u/tmp
 export ROOT=/home/shw002/StyleTTS2/out
-export SPEAKER_ID1=118
-export SPEAKER_ID2=47824
-export SPEAKER_UTTERANCE1=000003
-export SPEAKER_UTTERANCE2=000001
-export WAV_NAME="${SPEAKER_ID1}_${SPEAKER_UTTERANCE1}_${SPEAKER_ID2}_${SPEAKER_UTTERANCE2}"
+export SPEAKER_ID1=40
+export SPEAKER_ID2=121026
+export SPEAKER_UTTERANCE1=000008
+export SPEAKER_UTTERANCE2=000000
+export WAV_NAME="${SPEAKER_ID1}_${SPEAKER_ID2}_${SPEAKER_UTTERANCE1}_${SPEAKER_UTTERANCE2}"
 export TARGET=/home/shw002/u/data/LibriTTS_R/train-clean-100/${SPEAKER_ID1}/${SPEAKER_ID2}/${WAV_NAME}.wav
 export CHECKPOINT_NAME=DiT_seed_v2_uvit_whisper_small_wavenet_bigvgan_pruned
 export CONFIG_NAME=config_dit_mel_seed_uvit_whisper_small_wavenet

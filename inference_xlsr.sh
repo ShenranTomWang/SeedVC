@@ -18,13 +18,13 @@ export SPEAKER_ID1=118
 export SPEAKER_ID2=47824
 export SPEAKER_UTTERANCE1=000003
 export SPEAKER_UTTERANCE2=000001
-export WAV_NAME="${SPEAKER_ID1}_${SPEAKER_UTTERANCE1}_${SPEAKER_ID2}_${SPEAKER_UTTERANCE2}"
+export WAV_NAME="${SPEAKER_ID1}_${SPEAKER_ID2}_${SPEAKER_UTTERANCE1}_${SPEAKER_UTTERANCE2}"
 export TARGET=/home/shw002/u/data/LibriTTS_R/train-clean-100/${SPEAKER_ID1}/${SPEAKER_ID2}/${WAV_NAME}.wav
 export CHECKPOINT_NAME=DiT_uvit_tat_xlsr_ema
 export CONFIG_NAME=config_dit_mel_seed_uvit_xlsr_tiny
 
 for parent_dir in \
-    baseline \
+    baseline
     average \
     gender_average \
     gender_average_swapped \
