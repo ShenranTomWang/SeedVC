@@ -14,6 +14,13 @@ conda activate VC
 cd SeedVC
 export HF_HOME=/home/shw002/u/tmp
 export ROOT=/home/shw002/StyleTTS2/out
+export SPEAKER_ID1=118
+export SPEAKER_ID2=47824
+export SPEAKER_UTTERANCE1=000003
+export SPEAKER_UTTERANCE2=000001
+export WAV_NAME="${SPEAKER_ID1}_${SPEAKER_UTTERANCE1}_${SPEAKER_ID2}_${SPEAKER_UTTERANCE2}"
+export TARGET=/home/shw002/u/data/LibriTTS_R/train-clean-100/${SPEAKER_ID1}/${SPEAKER_ID2}/${WAV_NAME}.wav
+export CHECKPOINT_NAME=DiT_uvit_tat_xlsr_ema
 
 for parent_dir in \
     baseline \
@@ -67,9 +74,10 @@ for parent_dir in \
     gender_logistic_regression/s_a_top_32_custom_libritts_male
 do
     python inference.py \
-        --checkpoint /home/shw002/u/SeedVC/models/DiT_uvit_tat_xlsr_ema.pth \
+        --checkpoint /home/shw002/u/SeedVC/models/$CHECKPOINT_NAME.pth \
         --config /home/shw002/u/SeedVC/models/config_dit_mel_seed_uvit_xlsr_tiny.yml \
-        --target /home/shw002/u/data/LibriTTS_R/train-clean-100/27/123349/27_123349_000001_000000.wav \
+        --target $TARGET \
+        --output out/v1/$CHECKPOINT_NAME/$WAV_NAME \
         directory \
             --dir $ROOT/$parent_dir \
             --root $ROOT
