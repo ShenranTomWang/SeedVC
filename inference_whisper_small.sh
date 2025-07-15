@@ -20,7 +20,8 @@ export SPEAKER_UTTERANCE1=000003
 export SPEAKER_UTTERANCE2=000001
 export WAV_NAME="${SPEAKER_ID1}_${SPEAKER_UTTERANCE1}_${SPEAKER_ID2}_${SPEAKER_UTTERANCE2}"
 export TARGET=/home/shw002/u/data/LibriTTS_R/train-clean-100/${SPEAKER_ID1}/${SPEAKER_ID2}/${WAV_NAME}.wav
-export CHECKPOINT_NAME=DiT_uvit_tat_xlsr_ema
+export CHECKPOINT_NAME=DiT_seed_v2_uvit_whisper_small_wavenet_bigvgan_pruned
+export CONFIG_NAME=config_dit_mel_seed_uvit_whisper_small_wavenet
 
 for parent_dir in \
     baseline \
@@ -75,7 +76,7 @@ for parent_dir in \
 do
     python inference.py \
         --checkpoint /home/shw002/u/SeedVC/models/$CHECKPOINT_NAME.pth \
-        --config /home/shw002/u/SeedVC/models/config_dit_mel_seed_uvit_xlsr_tiny.yml \
+        --config configs/presets/$CONFIG_NAME.yml \
         --target $TARGET \
         --output out/v1/$CHECKPOINT_NAME/$WAV_NAME \
         directory \
