@@ -24,7 +24,7 @@ export CHECKPOINT_NAME=DiT_uvit_tat_xlsr_ema
 export CONFIG_NAME=config_dit_mel_seed_uvit_xlsr_tiny
 
 for parent_dir in \
-    baseline
+    baseline \
     average \
     gender_average \
     gender_average_swapped \
