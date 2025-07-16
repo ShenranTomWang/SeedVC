@@ -79,6 +79,7 @@ do
         --config configs/presets/$CONFIG_NAME.yml \
         --target $TARGET \
         --output out/v1/$CHECKPOINT_NAME/$WAV_NAME \
+        --diffusion_steps 50 \
         directory \
             --dir $ROOT/$parent_dir \
             --root $ROOT
