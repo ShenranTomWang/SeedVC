@@ -284,9 +284,9 @@ def inference(
     inference_cfg_rate: float,
     device: str,
     out_fname: str,
+    sr,
     **kwargs
 ) -> None:
-    sr = 22050 if not f0_condition else 44100
     hop_length = 256 if not f0_condition else 512
     max_context_window = sr // hop_length * 30
     overlap_frame_len = 16
@@ -448,6 +448,7 @@ def main(args):
             campplus_model=campplus_model,
             mel_fn=mel_fn,
             out_name=out_path,
+            sr=sr,
             **args.__dict__
         )
     elif args.inference_type == "directory":
@@ -467,6 +468,7 @@ def main(args):
                         campplus_model=campplus_model,
                         mel_fn=mel_fn,
                         out_fname=out_path,
+                        sr=sr,
                         **args.__dict__
                     )
 
