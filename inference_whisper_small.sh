@@ -23,7 +23,7 @@ for wav_name in \
     118_47824_000003_000001
 do
     IFS="_" read -ra wav_name_split <<< "$wav_name"
-    target="/home/shw002/u/data/LibriTTS_R/train-clean-100/${wav_name_split[0]}/${wav_name_split[1]}/${wav_name_split[2]}_${wav_name_split[3]}.wav"
+    target="/home/shw002/u/data/LibriTTS_R/train-clean-100/${wav_name_split[0]}/${wav_name_split[1]}/${wav_name}.wav"
     python inference.py \
         --checkpoint /home/shw002/u/SeedVC/models/$CHECKPOINT_NAME.pth \
         --config configs/presets/$CONFIG_NAME.yml \
