@@ -24,7 +24,7 @@ for target in \
     /home/aip000/u/sgile/crk_corpus_24k/wavs_24k/wavs/63e6f575-47af-4396-a765-ce390292593d/90eebb2a412e74df0777d72842662553c9b19e5fc410c7ef78dd53efb8b1bdea.wav \
     /home/aip000/u/sgile/crk_corpus_24k/wavs_24k/wavs/912b397e-4a19-4ee7-b127-ba367db2b6da/9e84b636802cae1da22525a3419361d5d4938955db50d119d8879a4d7e4ac5fd.wav
 do
-    IFS="/" read -ra wav_name_split <<< "$wav_name"
+    IFS="/" read -ra wav_name_split <<< "$target"
     python inference_v2.py \
         --ar-checkpoint-path "/home/shw002/u/SeedVC/models/v2/ar_base.pth" \
         --cfm-checkpoint-path "/home/shw002/u/SeedVC/models/v2/cfm_small.pth" \
