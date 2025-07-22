@@ -29,7 +29,7 @@ do
         --ar-checkpoint-path "/home/shw002/u/SeedVC/models/v2/ar_base.pth" \
         --cfm-checkpoint-path "/home/shw002/u/SeedVC/models/v2/cfm_small.pth" \
         --target $target \
-        --output /home/shw002/u/data/LibriTTS-train-${wav_name_split[7]} \
+        --output /home/shw002/u/data/LibriTTS-train-${wav_name_split[8]} \
         --anonymization-only false \
         --convert-style true \
         --similarity-cfg-rate 1.0 \
