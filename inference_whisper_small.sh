@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=inference_seed-vc
+#SBATCH --job-name=seed_vc-inference_whisper_small
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.out
 #SBATCH --time=10080
