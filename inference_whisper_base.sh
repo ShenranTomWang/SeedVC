@@ -13,7 +13,7 @@ source .bashrc
 conda activate VC
 cd SeedVC
 export HF_HOME=/home/shw002/u/tmp
-export ROOT=/home/shw002/StyleTTS2/out
+export ROOT=/home/shw002/StyleTTS2/out/crk
 export CHECKPOINT_NAME=DiT_seed_v2_uvit_whisper_base_f0_44k_bigvgan_pruned_ft_ema
 export CONFIG_NAME=config_dit_mel_seed_uvit_whisper_base_f0_44k
 
