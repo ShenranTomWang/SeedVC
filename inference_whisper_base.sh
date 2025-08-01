@@ -19,8 +19,15 @@ export CONFIG_NAME=config_dit_mel_seed_uvit_whisper_base_f0_44k
 
 for wav_name in \
     27_123349_000001_000000 \
+    201_122255_000001_000000 \
+    118_47824_000003_000001 \
+    1081_128618_000005_000000 \
+    2002_139469_000002_000000 \
+    19_198_000000_000000 \
     40_121026_000008_000000 \
-    118_47824_000003_000001
+    125_121124_000009_000003 \
+    103_1241_000004_000002 \
+    298_126790_000008_000000
 do
     IFS="_" read -ra wav_name_split <<< "$wav_name"
     target="/home/shw002/u/data/LibriTTS_R/train-clean-100/${wav_name_split[0]}/${wav_name_split[1]}/${wav_name}.wav"
